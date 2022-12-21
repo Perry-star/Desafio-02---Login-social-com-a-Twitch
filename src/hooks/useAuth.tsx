@@ -38,9 +38,20 @@ function AuthProvider({ children }: AuthProviderData) {
 
   // get CLIENT_ID from environment variables
 
+  const { CLIENT_ID } = process.env;
+
+  if (!CLIENT_ID) {
+    
+    throw new Error('Invalid Client ID env.')
+  }
+ 
+
+  
+
   async function signIn() {
     try {
       // set isLoggingIn to true
+      setIsLoggingIn (true);
 
       // REDIRECT_URI - create OAuth redirect URI using makeRedirectUri() with "useProxy" option set to true
       // RESPONSE_TYPE - set to "token"
@@ -48,19 +59,44 @@ function AuthProvider({ children }: AuthProviderData) {
       // FORCE_VERIFY - set to true
       // STATE - generate random 30-length string using generateRandom() with "size" set to 30
 
+
+
+      const REDIRECT_URI = makeRedirectUri({ useProxy: true });
+      const RESPONSE_TYPE = 'token';
+      const SCOPE = encodeURI('openid user:read:email user:read:follows');
+      const FORCE_VERIFY = true;
+      const STATE = generateRandom(30);
+
+
       // assemble authUrl with twitchEndpoint authorization, client_id, 
       // redirect_uri, response_type, scope, force_verify and state
 
-      // call startAsync with authUrl
+      const authUrl = twitchEndpoints.authorization + 
+      `?client_id=${CLIENT_ID}` + 
+      `&redirect_uri=${REDIRECT_URI}` + 
+      `&response_type=${RESPONSE_TYPE}` + 
+      `&scope=${SCOPE}` + 
+      `&force_verify=${FORCE_VERIFY}` +
+      `&state=${STATE}`;
 
+
+      // call startAsync with authUrl
       // verify if startAsync response.type equals "success" and response.params.error differs from "access_denied"
       // if true, do the following:
 
-        // verify if startAsync response.params.state differs from STATE
-        // if true, do the following:
-          // throw an error with message "Invalid state value"
+      // verify if startAsync response.params.state differs from STATE
+      // if true, do the following:
+      // throw an error with message "Invalid state value"
 
+      const authResponse = await startAsync({authUrl});
+
+      if(authResponse.type === "success" && authResponse.params.error !== "access_denied") 
+        if(authResponse.params.state !== STATE){
+          throw new Error("Invalid state value");
+        }
+     
         // add access_token to request's authorization header
+        api.defaults.headers.common['Authorization'] = `Bearer ${authResponse.params.access_token}`;
 
         // call Twitch API's users route
 
@@ -91,6 +127,7 @@ function AuthProvider({ children }: AuthProviderData) {
 
   useEffect(() => {
     // add client_id to request's "Client-Id" header
+    api.defaults.headers.common['Client-Id'] = CLIENT_ID;
   }, [])
 
   return (
