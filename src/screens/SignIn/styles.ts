@@ -1,7 +1,9 @@
 import { RectButton } from 'react-native-gesture-handler';
+import { TouchableOpacityProps } from 'react-native';
 import styled from 'styled-components/native';
 import { getBottomSpace, getStatusBarHeight } from 'react-native-iphone-x-helper';
 import { MotiView } from 'moti';
+
 
 export const Container = styled(MotiView)`
   flex: 1;
